@@ -1,23 +1,17 @@
 import express from 'express';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import db from './config/connection.js';
+//import routes from './routes/index.js';
 // Import the ApolloServer class
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 // Import the two parts of a GraphQL schema
 import typeDefs from './schemas/typeDefs.js';
-import resolvers from './schemas/resolvers.js';
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+import { resolvers } from './schemas/resolvers.js';
 const server = new ApolloServer({
     typeDefs,
     resolvers,
 });
-
 const startApolloServer = async () => {
     await server.start();
     await db.once('open', () => console.log('Connected to MongoDB'));
@@ -37,6 +31,5 @@ const startApolloServer = async () => {
         console.log(`Use GraphQL at http://localhost:${PORT}/graphql`);
     });
 };
-
 // Call the async function to start the server
 startApolloServer();
