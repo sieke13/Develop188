@@ -28,9 +28,9 @@ const startApolloServer = async () => {
     app.use(express.json());
     // Servir archivos estáticos en producción
     if (process.env.NODE_ENV === 'production') {
-        app.use(express.static(path.join(__dirname, '../client/build')));
+        app.use(express.static(path.join(__dirname, '../../client/build')));
         app.get('*', (_, res) => {
-            res.sendFile(path.join(__dirname, '../client/build/index.html'));
+            res.sendFile(path.join(__dirname, '../../client/build/index.html'));
         });
     }
     // Iniciar servidor después de la conexión a la DB
