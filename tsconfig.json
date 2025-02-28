@@ -3,6 +3,8 @@
     /* Language and Environment */
     "target": "ESNext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     "types": ["node"] /* Specify type package names to be included in the type-checking process. */,
+    "outDir": "./dist",
+    "rootDir": "./src",
 
     /* Modules */
     "module": "ESNext" /* Specify what module code is generated. */,
@@ -28,9 +30,6 @@
     "noImplicitOverride": true /* Ensure overriding members in derived classes are marked with an override modifier. */,
     "useUnknownInCatchVariables": true /* Ensure 'unknown' is used for catch clause variables. */,
 
-    /* Output */
-    "outDir": "./dist",
-    "rootDir": "./src"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

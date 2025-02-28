@@ -1,6 +1,7 @@
-import User from "../models/User";
-import { AuthenticationError } from "apollo-server-express";
-import { signToken } from "../services/auth";
+import User from '../models/User.js';
+// Ensure the correct path to the Book model
+import { signToken } from '../services/auth.js';
+import { AuthenticationError } from 'apollo-server-express';
 const resolvers = {
     Query: {
         me: async (_, __, context) => {
