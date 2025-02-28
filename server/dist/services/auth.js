@@ -19,10 +19,23 @@ export const authenticateToken = (req, res, next) => {
         res.sendStatus(401); // Unauthorized
     }
 };
+export const authMiddleware = ({ req }) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+        throw new Error('No token, authorization denied');
+    }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || '');
+        return decoded; // Return the decoded user object
+    }
+    catch (err) {
+        throw new Error('Token is not valid');
+    }
+};
 export const signToken = (username, email, _id) => {
     const payload = { username, email, _id };
     const secretKey = process.env.JWT_SECRET_KEY || '';
-    return jwt.sign(payload, secretKey, { expiresIn: '1d' });
+    return jwt.sign(payload, secretKey, { expiresIn: '1h' });
 };
 export class AuthenticationError extends GraphQLError {
     constructor(message) {

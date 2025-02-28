@@ -1,34 +1,35 @@
 import express from 'express';
-import path from 'node:path';
-import { fileURLToPath } from 'url'; // ✅ Required for __dirname in ES Modules
-import db from './config/connection.js';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServer } from 'apollo-server-express';
+import path from 'path';
 import typeDefs from './schemas/typeDefs.js';
-import { resolvers } from './schemas/resolvers.js';
-// Fix __dirname manually
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import resolvers from './schemas/resolvers.js';
+import { authMiddleware } from './services/auth'; // Asegúrate de que authMiddleware esté tipado
+import db from './config/connection'; // Asegúrate de que db esté tipado
+const PORT = process.env.PORT || 3001;
+const app = express();
+// Crear una instancia de Apollo Server con tipos
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    context: authMiddleware, // Asegúrate de que authMiddleware sea compatible con el contexto de Apollo
 });
-const startApolloServer = async () => {
-    await server.start();
-    await db.once('open', () => console.log('Connected to MongoDB'));
-    const app = express();
-    const PORT = process.env.PORT || 3001;
-    app.use(express.urlencoded({ extended: false }));
-    app.use(express.json());
-    app.use('/graphql', expressMiddleware(server));
-    if (process.env.NODE_ENV === 'production') {
-        app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
-        app.get('*', (_req, res) => {
-            res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
-        });
-    }
-    app.listen(PORT, () => {
-        console.log(`🌍 Server running on http://localhost:${PORT}`);
+// Aplicar middleware de Apollo Server a Express
+server.applyMiddleware({ app: app });
+// Middleware para parsear el cuerpo de las solicitudes
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+// Si estamos en producción, servir los archivos estáticos de la carpeta client/build
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../client/build')));
+    // Capturar todas las rutas y servir el archivo index.html
+    app.get('*', (_, res) => {
+        res.sendFile(path.join(__dirname, '../client/build/index.html'));
     });
-};
-startApolloServer();
+}
+// Iniciar el servidor una vez que la conexión a la base de datos esté abierta
+db.once('open', () => {
+    app.listen(PORT, () => {
+        console.log(`🌍 Now listening on localhost:${PORT}`);
+        console.log(`GraphQL server ready at http://localhost:${PORT}${server.graphqlPath}`);
+    });
+});
