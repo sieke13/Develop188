@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/dist/server.js",
+    "start": "node server.js",
+    "build": "cd client && npm install && npm run build",
+    "postinstall": "npm run build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "install": "cd server && npm i && cd ../client && npm i",
-    "build": "concurrently \"cd client && npm run build\" \"cd server && npm run build\"",
     "render-build": "npm install && npm run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@types/express": "^4.17.13",
     "concurrently": "^8.2.0"
   },
   "description": "",
