@@ -1,4 +1,5 @@
-import User from "../models/User"
+
+import User, { UserDocument } from "../models/User"
 import { AuthenticationError, signToken } from "../services/auth";
 
 const resolvers = {
@@ -14,7 +15,7 @@ const resolvers = {
     Mutation: {
         login: async (_: any, { email, password }: { email: string; password: string }) => {
             
-            const user = await User.findOne({ email });
+            const user: UserDocument | null = await User.findOne({ email });
       
             if (!user) {
               throw new AuthenticationError('Incorrect credentials');
