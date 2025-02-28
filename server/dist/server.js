@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'node:path';
 import db from './config/connection.js';
-import User from './models/User.js';
 //import routes from './routes/index.js';
 // Import the ApolloServer class
 import { ApolloServer } from '@apollo/server';
