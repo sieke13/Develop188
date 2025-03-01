@@ -1,9 +1,9 @@
 {
   "name": "googlebooks-app",
   "version": "1.0.0",
-  "main": "server/server.js",
+  "main": "server/dist/server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node server/dist/server.js",
     "build": "cd client && npm install && npm run build",
     "postinstall": "npm run build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
