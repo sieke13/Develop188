@@ -36,19 +36,19 @@ const startApolloServer = async () => {
   // Servir archivos estáticos en producción
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../client/dist');
-    
-    if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
 
-      app.get('*', (req, res, next) => {
-        // Verifica si la ruta solicitada es un archivo estático en dist/
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+
+      app.get('*', (req, res) => {
         const requestedFile = path.join(distPath, req.path);
-      
+
+        // 🔹 Si el archivo existe, devolverlo
         if (fs.existsSync(requestedFile) && req.path.startsWith('/assets/')) {
           return res.sendFile(requestedFile);
         }
-      
-        // Si no es un archivo estático, devolver index.html
+
+        // 🔹 Si no es un archivo, devolver index.html
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
