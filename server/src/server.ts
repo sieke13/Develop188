@@ -36,10 +36,11 @@ const startApolloServer = async () => {
   await server.start();
 
   // Connect to MongoDB
-  if (!process.env.MONGODB_URI) {
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
     throw new Error('MONGODB_URI is not defined in environment variables');
   }
-  const client = new MongoClient(process.env.MONGODB_URI);
+  const client = new MongoClient(mongoUri);
   await client.connect();
   const db = client.db(process.env.DB_NAME);
 
