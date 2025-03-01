@@ -18,12 +18,17 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 
 // Enable CORS
-app.use(cors());
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true
+};
+app.use(cors(corsOptions));
 
 // Crear servidor Apollo
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  introspection: true,
 });
 
 const startApolloServer = async () => {
