@@ -1,10 +1,15 @@
 import User, { IUser } from '../models/User.js';
-// Ensure the correct path to the Book model
 import { signToken } from '../services/auth.js';
 import { AuthenticationError } from 'apollo-server-express';
+import { Db } from 'mongodb';
 
-// Define interface for User document
-
+interface BookInput {
+  bookId: string;
+  title: string;
+  authors: string[];
+  description?: string;
+  image?: string;
+}
 
 const resolvers = {
   Query: {
@@ -44,16 +49,36 @@ const resolvers = {
       return { token, user };
     },
 
-    saveBook: async (_: any, { bookData }: { bookData: any }, context: any) => {
-      if (context.user) {
-        const updatedUser = await User.findByIdAndUpdate(
-          context.user._id,
-          { $addToSet: { savedBooks: bookData } },
-          { new: true }
-        ).populate('savedBooks');
-        return updatedUser;
+    saveBook: async (_: any, { bookData }: { bookData: BookInput }, { db }: { db: Db }) => {
+      try {
+        console.log("🔍 Recibiendo solicitud para guardar libro:", bookData);
+
+        // Verificar si el libro ya está en la base de datos
+        const existingBook = await db.collection("books").findOne({ bookId: bookData.bookId });
+        if (existingBook) {
+          console.log("⚠️ El libro ya existe en la base de datos.");
+          throw new Error("Este libro ya está guardado.");
+        }
+
+        // Crear objeto para guardar en la base de datos
+        const newBook = {
+          ...bookData,
+          createdAt: new Date(),
+        };
+
+        // Insertar en la base de datos
+        const result = await db.collection("books").insertOne(newBook);
+        if (!result.insertedId) {
+          console.error("❌ Error al guardar el libro en la base de datos.");
+          throw new Error("No se pudo guardar el libro.");
+        }
+
+        console.log("✅ Libro guardado exitosamente:", newBook);
+        return newBook;
+      } catch (error) {
+        console.error("❌ Error en la mutación saveBook:", error);
+        throw new Error("Error al guardar el libro.");
       }
-      throw new AuthenticationError('Not logged in');
     },
 
     removeBook: async (_: any, { bookId }: { bookId: string }, context: any) => {

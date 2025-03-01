@@ -9,6 +9,7 @@ import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
 import fs from 'fs';
 import cors from 'cors';
+import { MongoClient } from 'mongodb';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
@@ -34,9 +35,20 @@ const server = new ApolloServer({
 const startApolloServer = async () => {
   await server.start();
 
+  // Connect to MongoDB
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  const db = client.db(process.env.DB_NAME);
+
   // Middleware for GraphQL with authentication
   app.use('/graphql', express.json(), expressMiddleware(server, {
-    context: async ({ req }) => authMiddleware({ req }),
+    context: async ({ req }) => {
+      const context = authMiddleware({ req });
+      return { ...context, db };
+    },
   }));
 
   // Middleware for parsing request bodies
