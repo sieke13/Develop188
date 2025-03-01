@@ -60,9 +60,27 @@ const resolvers = {
     },
 
     addUser: async (_: any, { input }: AddUserArgs) => {
-      const user: IUser = await User.create({ ...input });
-      const token = signToken(user.username, user.email, user._id.toString());
-      return { token, user };
+      try {
+        console.log("🔍 Recibiendo solicitud de registro:", input);
+
+        // Verificar si el usuario ya existe
+        const existingUser = await User.findOne({ email: input.email });
+        if (existingUser) {
+          console.log("⚠️ El usuario ya existe.");
+          throw new Error("El usuario ya está registrado.");
+        }
+
+        // Crear el nuevo usuario
+        const user: IUser = await User.create({ ...input });
+        console.log("✅ Usuario creado exitosamente:", user);
+
+        // Generar el token JWT
+        const token = signToken(user.username, user.email, user._id.toString());
+        return { token, user };
+      } catch (error) {
+        console.error("❌ Error en la mutación addUser:", error);
+        throw new Error("Error durante el registro. Por favor, inténtalo de nuevo.");
+      }
     },
 
     saveBook: async (_: any, { bookData }: addBookArgs, context: any) => {
