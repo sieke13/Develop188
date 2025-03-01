@@ -36,22 +36,16 @@ const startApolloServer = async () => {
   // Servir archivos estáticos en producción
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../client/dist');
-
-    // Asegurar que la carpeta dist existe
+    
     if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
+      app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
 
-      // Capturar cualquier ruta que no sea un archivo y devolver index.html
       app.get('*', (req, res) => {
-        const requestedFile = path.join(distPath, req.path);
-
-        // Si el archivo no existe, devolver index.html
-        if (!fs.existsSync(requestedFile)) {
-          return res.sendFile(path.join(distPath, 'index.html'));
+        if (req.path.startsWith('/assets/')) {
+          // Evita servir index.html para archivos JS/CSS
+          return res.status(404).send('Not Found');
         }
-
-        // Si el archivo existe, dejar que Express lo maneje
-        res.sendFile(requestedFile);
+        res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
       console.error('❌ ERROR: La carpeta dist/ no existe. Asegúrate de ejecutar "npm run build".');
