@@ -79,15 +79,17 @@ const SearchBooks = () => {
     }
 
     try {
+      console.log('Saving book:', bookToSave); // Add this line to log the book data
+
       // Use the Apollo mutation instead of the REST API call
       await saveBookMutation({
-        variables: { input: bookToSave }
+        variables: { bookData: bookToSave }
       });
       
       // if book successfully saves to user's account, save book id to state
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
     } catch (err) {
-      console.error(err);
+      console.error('Error saving book:', err); // Add this line to log the error
     }
   };
 
