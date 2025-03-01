@@ -67,29 +67,32 @@ const SearchBooks = () => {
   };
 
   // create function to handle saving a book to our database
-  const handleSaveBook = async (bookId: string) => {
-    // find the book in `searchedBooks` state by the matching id
-    const bookToSave = searchedBooks.find((book) => book.bookId === bookId)!;
-
-    // get token
+  const handleSaveBook = async (book: Book) => {
     const token = Auth.loggedIn() ? Auth.getToken() : null;
-
+  
     if (!token) {
+      console.error('You need to be logged in to save a book!');
       return false;
     }
-
+  
     try {
-      console.log('Saving book:', bookToSave); // Add this line to log the book data
-
-      // Use the Apollo mutation instead of the REST API call
-      await saveBookMutation({
-        variables: { bookData: bookToSave }
+      const { data } = await saveBookMutation({
+        variables: {
+          bookData: {
+            bookId: book.bookId,
+            authors: book.authors,
+            title: book.title,
+            description: book.description,
+            image: book.image,
+            link: book.link || '', // Ensure link is included, even if empty
+          },
+        },
       });
-      
-      // if book successfully saves to user's account, save book id to state
-      setSavedBookIds([...savedBookIds, bookToSave.bookId]);
+  
+      setSavedBookIds([...savedBookIds, book.bookId]);
+      console.log('Book saved:', data.saveBook);
     } catch (err) {
-      console.error('Error saving book:', err); // Add this line to log the error
+      console.error('Error saving book:', err);
     }
   };
 
@@ -142,7 +145,7 @@ const SearchBooks = () => {
                       <Button
                         disabled={savedBookIds?.some((savedBookId: string) => savedBookId === book.bookId)}
                         className='btn-block btn-info'
-                        onClick={() => handleSaveBook(book.bookId)}>
+                        onClick={() => handleSaveBook(book)}>
                         {savedBookIds?.some((savedBookId: string) => savedBookId === book.bookId)
                           ? 'This book has already been saved!'
                           : 'Save this Book!'}

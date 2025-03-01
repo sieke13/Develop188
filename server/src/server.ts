@@ -10,6 +10,7 @@ import connectDB from './config/connection.js';
 import fs from 'fs';
 import cors from 'cors';
 import { MongoClient } from 'mongodb';
+import type { Request } from 'express';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
@@ -47,8 +48,14 @@ const startApolloServer = async () => {
   // Middleware for GraphQL with authentication
   app.use('/graphql', express.json(), expressMiddleware(server, {
     context: async ({ req }) => {
-      const context = authMiddleware({ req });
-      return { ...context, db };
+      // Extract the token from the request headers
+      const token = req.headers.authorization || '';
+      
+      // Use authMiddleware to get the user from the token
+      const { user } = authMiddleware({ req: { headers: { authorization: token } } as Request });
+      
+      // Return the user and db in the context
+      return { user, db };
     },
   }));
 

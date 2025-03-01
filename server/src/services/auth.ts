@@ -11,6 +11,7 @@ interface JwtPayload {
   email: string;
 }
 
+// Middleware para autenticar tokens en Express
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
@@ -31,23 +32,24 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
+// Middleware para autenticar tokens en GraphQL
 export const authMiddleware = ({ req }: { req: Request }) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return req; // Allow requests without a token
+    return { user: null }; // Devuelve un contexto sin usuario si no hay token
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || '') as JwtPayload;
-    req.user = decoded; // Attach the decoded user object to the request
+    return { user: decoded }; // Devuelve el usuario decodificado en el contexto
   } catch (err) {
     console.log('Token is not valid');
+    return { user: null }; // Devuelve un contexto sin usuario si el token no es válido
   }
-
-  return req;
 };
 
+// Función para firmar tokens JWT
 export const signToken = (username: string, email: string, _id: unknown) => {
   const payload = { username, email, _id };
   const secretKey = process.env.JWT_SECRET_KEY || '';
@@ -55,9 +57,14 @@ export const signToken = (username: string, email: string, _id: unknown) => {
   return jwt.sign(payload, secretKey, { expiresIn: '90h' });
 };
 
+// Clase personalizada para errores de autenticación en GraphQL
 export class AuthenticationError extends GraphQLError {
   constructor(message: string) {
-    super(message, undefined, undefined, undefined, ['UNAUTHENTICATED']);
+    super(message, {
+      extensions: {
+        code: 'UNAUTHENTICATED',
+      },
+    });
     Object.defineProperty(this, 'name', { value: 'AuthenticationError' });
   }
-};
+}

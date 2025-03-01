@@ -73,32 +73,10 @@ const resolvers = {
       try {
         console.log("🔍 Recibiendo solicitud para guardar libro:", bookData);
 
-        // Verificar si el libro ya está en la base de datos
-        const existingBook = await context.db.collection("books").findOne({ bookId: bookData.bookId });
-        if (existingBook) {
-          console.log("⚠️ El libro ya existe en la base de datos.");
-          throw new Error("Este libro ya está guardado.");
-        }
-
-        // Crear objeto para guardar en la base de datos
-        const newBook = {
-          ...bookData,
-          createdAt: new Date(),
-        };
-
-        // Insertar en la base de datos
-        const result = await context.db.collection("books").insertOne(newBook);
-        if (!result.insertedId) {
-          console.error("❌ Error al guardar el libro en la base de datos.");
-          throw new Error("No se pudo guardar el libro.");
-        }
-
-        console.log("✅ Libro guardado exitosamente:", newBook);
-
-        // Actualizar los libros guardados del usuario
+        // Update the user's savedBooks array
         const updatedUser = await User.findByIdAndUpdate(
           context.user._id,
-          { $addToSet: { savedBooks: bookData } },
+          { $addToSet: { savedBooks: bookData } }, // Add the book to the savedBooks array
           { new: true, runValidators: true }
         ).populate('savedBooks');
 
@@ -108,6 +86,7 @@ const resolvers = {
         throw new Error("Error al guardar el libro.");
       }
     },
+
 
     removeBook: async (_: any, { bookId }: { bookId: string }, context: any) => {
       if (!context.user) {
@@ -126,7 +105,7 @@ const resolvers = {
 
       return updatedUser;
     }
-  }
+  },
 };
 
 export { resolvers };
