@@ -24,26 +24,26 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Crear servidor Apollo
+// Create Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  introspection: true,
+  introspection: true, // Enable introspection for GraphQL Playground
 });
 
 const startApolloServer = async () => {
   await server.start();
 
-  // Middleware para GraphQL con autenticación
+  // Middleware for GraphQL with authentication
   app.use('/graphql', express.json(), expressMiddleware(server, {
     context: async ({ req }) => authMiddleware({ req }),
   }));
 
-  // Middleware para request bodies
+  // Middleware for parsing request bodies
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
 
-  // Servir archivos estáticos en producción
+  // Serve static files in production
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../../client/dist');
     
@@ -51,22 +51,22 @@ const startApolloServer = async () => {
       app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
 
       app.get('*', (req, res) => {
-        // Verifica si la ruta solicitada es un archivo estático en dist/
+        // Check if the requested path is a static file in dist/
         const requestedFile = path.join(distPath, req.path);
 
         if (fs.existsSync(requestedFile) && req.path.startsWith('/assets/')) {
           return res.sendFile(requestedFile);
         }
 
-        // Si no es un archivo estático, devolver index.html
+        // If not a static file, return index.html
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
-      console.error('❌ ERROR: La carpeta dist/ no existe. Asegúrate de ejecutar "npm run build".');
+      console.error('❌ ERROR: The dist/ folder does not exist. Make sure to run "npm run build".');
     }
   }
 
-  // Conexión a la base de datos y arranque del servidor
+  // Connect to the database and start the server
   await connectDB();
   app.listen(PORT, () => {
     console.log(`🌍 Server running on port ${PORT}`);
@@ -74,5 +74,5 @@ const startApolloServer = async () => {
   });
 };
 
-// Iniciar el servidor
+// Start the server
 startApolloServer();
