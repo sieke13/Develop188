@@ -4,7 +4,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import typeDefs from './schemas/typeDefs.js';
-import resolvers from './schemas/resolvers.js';
+import { resolvers } from './schemas/resolvers.js';
 import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
 import fs from 'fs';
