@@ -1,9 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { GraphQLError } from 'graphql';
 import dotenv from 'dotenv';
-
 dotenv.config();
-
 export const authenticateToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader) {
@@ -16,11 +14,11 @@ export const authenticateToken = (req, res, next) => {
             req.user = user;
             return next();
         });
-    } else {
+    }
+    else {
         res.sendStatus(401); // Unauthorized
     }
 };
-
 export const authMiddleware = ({ req }) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -29,21 +27,21 @@ export const authMiddleware = ({ req }) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || '');
         req.user = decoded; // Attach the decoded user object to the request
-    } catch (err) {
+    }
+    catch (err) {
         console.log('Token is not valid');
     }
     return req;
 };
-
 export const signToken = (username, email, _id) => {
     const payload = { username, email, _id };
     const secretKey = process.env.JWT_SECRET_KEY || '';
     return jwt.sign(payload, secretKey, { expiresIn: '90h' });
 };
-
 export class AuthenticationError extends GraphQLError {
     constructor(message) {
         super(message, undefined, undefined, undefined, ['UNAUTHENTICATED']);
         Object.defineProperty(this, 'name', { value: 'AuthenticationError' });
     }
 }
+;
