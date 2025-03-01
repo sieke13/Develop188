@@ -137,16 +137,16 @@ this in the docs: http://dev.apollodata.com/core/fragments.html#unique-names`):a
     }
   }
 `,_R=vn`
-  mutation addUser($username: String!, $email: String!, $password: String!) {
-    addUser(username: $username, email: $email, password: $password) {
-      token
-      user {
-        _id
-        username
-        email
-      }
+mutation AddUser($input: AddUserInput!) {
+  addUser(input: $input) {
+    token
+    user {
+      _id
+      username
+      email
     }
   }
+}
 `,TR=vn`
   mutation saveBook($bookData: BookInput!) {
     saveBook(bookData: $bookData) {

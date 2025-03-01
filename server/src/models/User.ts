@@ -1,5 +1,6 @@
 import { Schema, model, Document, ObjectId } from 'mongoose';
 import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 
 // Define the IBook interface
 export interface IBook {
@@ -50,6 +51,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       trim: true,
+      unique: true,
     },
     email: {
       type: String,
@@ -62,7 +64,7 @@ const userSchema = new Schema<IUser>(
       required: true,
       minlength: 1,
     },
-    savedBooks: [bookSchema],
+    savedBooks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }],
   },
   {
     toJSON: {
