@@ -40,11 +40,15 @@ const startApolloServer = async () => {
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
 
-      app.get('*', (req, res) => {
-        if (req.path.startsWith('/assets/')) {
-          // Evita servir index.html para archivos JS/CSS
-          return res.status(404).send('Not Found');
+      app.get('*', (req, res, next) => {
+        // Verifica si la ruta solicitada es un archivo estático en dist/
+        const requestedFile = path.join(distPath, req.path);
+      
+        if (fs.existsSync(requestedFile) && req.path.startsWith('/assets/')) {
+          return res.sendFile(requestedFile);
         }
+      
+        // Si no es un archivo estático, devolver index.html
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
