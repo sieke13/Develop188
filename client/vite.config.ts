@@ -24,5 +24,5 @@ export default defineConfig({
     }
   },
 
-  base: './', // 🔹 Asegura que los archivos se sirvan correctamente
+  base: './' // 🔹 Asegura que los archivos se sirvan correctamente
 })
