@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://geraave2:gerardo123@cluster0.iqwly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/googlebooks', {
+    });
+    console.log('📦 MongoDB Connected');
+  } catch (error) {
+    console.error('❌ MongoDB Connection Error:', error);
+    process.exit(1);
+  }
+};
 
-export default mongoose.connection;
+export default connectDB;

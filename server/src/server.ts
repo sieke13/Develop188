@@ -6,13 +6,14 @@ import { fileURLToPath } from 'url';
 import typeDefs from './schemas/typeDefs.js';
 import resolvers from './schemas/resolvers.js';
 import { authMiddleware } from './services/auth.js';
-import db from './config/connection.js';
+import connectDB from './config/connection.js';
 import fs from 'fs';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const PORT = process.env.PORT || 3001;
 const app = express();
 
 // Crear servidor Apollo
@@ -35,46 +36,32 @@ const startApolloServer = async () => {
 
   // Servir archivos estáticos en producción
   if (process.env.NODE_ENV === 'production') {
-    const distPath = path.join(__dirname, '../client/dist');
-  
+    const distPath = path.join(__dirname, '../../client/dist');
+    
     if (fs.existsSync(distPath)) {
-      app.use('/assets', express.static(path.join(distPath, 'assets'), {
-        setHeaders: (res, filePath) => {
-          if (filePath.endsWith('.js')) {
-            res.setHeader('Content-Type', 'application/javascript');
-          }
-        }
-      }));
-  
-      app.use(express.static(distPath));
-  
-      app.get('*', (req, res) => {
+      app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
+
+      app.get('*', (req, res, ) => {
+        // Verifica si la ruta solicitada es un archivo estático en dist/
         const requestedFile = path.join(distPath, req.path);
-        
-        if (fs.existsSync(requestedFile) && req.path.includes('.')) {
+
+        if (fs.existsSync(requestedFile) && req.path.startsWith('/assets/')) {
           return res.sendFile(requestedFile);
         }
-  
+
+        // Si no es un archivo estático, devolver index.html
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
       console.error('❌ ERROR: La carpeta dist/ no existe. Asegúrate de ejecutar "npm run build".');
     }
   }
-  
 
-  // Iniciar servidor después de la conexión a la DB
-  db.once('open', () => {
-    const PORT = process.env.PORT || 3001;
-    app.listen(PORT, () => {
-      console.log(`🌍 Server running on port ${PORT}`);
-      console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
-    });
-  });
-
-  // Manejo de errores en la base de datos
-  db.on('error', (err) => {
-    console.error('❌ Database connection error:', err);
+  // Conexión a la base de datos y arranque del servidor
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`🌍 Server running on port ${PORT}`);
+    console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
   });
 };
 

@@ -1,16 +1,5 @@
 import type { Request, Response } from 'express';
-// import user model
-
-import User from '../models/User.js'; 
-// Define User interface for TypeScript
-interface IUser {
-  _id: any;
-  username: string;
-  email: string;
-  savedBooks?: any[];
-  isCorrectPassword(password: string): Promise<boolean>;
-}
-// import sign token function from auth
+import User, { IUser } from '../models/User.js'; 
 import { signToken } from '../services/auth.js';
 
 // get a single user by either their id or their username
@@ -26,7 +15,7 @@ export const getSingleUser = async (req: Request, res: Response) => {
   return res.json(foundUser);
 };
 
-// create a user, sign a token, and send it back (to client/src/components/SignUpForm.js)
+// create a user, sign a token, and send it back
 export const createUser = async (req: Request, res: Response) => {
   const user: IUser = await User.create(req.body); // Explicitly type user as IUser
 
@@ -37,10 +26,9 @@ export const createUser = async (req: Request, res: Response) => {
   return res.json({ token, user });
 };
 
-// login a user, sign a token, and send it back (to client/src/components/LoginForm.js)
-// {body} is destructured req.body
+// login a user, sign a token, and send it back
 export const login = async (req: Request, res: Response) => {
-  const user = await User.findOne({ $or: [{ username: req.body.username }, { email: req.body.email }] }) as IUser;
+  const user: IUser | null = await User.findOne({ $or: [{ username: req.body.username }, { email: req.body.email }] });
   if (!user) {
     return res.status(400).json({ message: "Can't find this user" });
   }
@@ -50,16 +38,18 @@ export const login = async (req: Request, res: Response) => {
   if (!correctPw) {
     return res.status(400).json({ message: 'Wrong password!' });
   }
-  const token = signToken(user.username, user.email, user._id.toString());
+
+  // Use type assertion to ensure user is not null
+  const userId = (user as IUser)._id.toString();
+  const token = signToken(user.username, user.email, userId);
   return res.json({ token, user });
 };
 
-// save a book to a user's `savedBooks` field by adding it to the set (to prevent duplicates)
-// user comes from `req.user` created in the auth middleware function
+// save a book to a user's `savedBooks` field
 export const saveBook = async (req: Request, res: Response) => {
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: req.user._id },
+    const updatedUser: IUser | null = await User.findOneAndUpdate(
+      { _id: req.user?._id }, // Use optional chaining
       { $addToSet: { savedBooks: req.body } },
       { new: true, runValidators: true }
     );
@@ -72,8 +62,8 @@ export const saveBook = async (req: Request, res: Response) => {
 
 // remove a book from `savedBooks`
 export const deleteBook = async (req: Request, res: Response) => {
-  const updatedUser = await User.findOneAndUpdate(
-    { _id: req.user._id },
+  const updatedUser: IUser | null = await User.findOneAndUpdate(
+    { _id: req.user?._id }, // Use optional chaining
     { $pull: { savedBooks: { bookId: req.params.bookId } } },
     { new: true }
   );
