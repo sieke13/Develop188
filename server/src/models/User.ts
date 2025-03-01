@@ -22,27 +22,6 @@ export interface IUser extends Document {
   isCorrectPassword(password: string): Promise<boolean>;
 }
 
-// Define the bookSchema
-const bookSchema = new Schema<IBook>({
-  bookId: {
-    type: String,
-    required: true,
-  },
-  authors: [String],
-  description: {
-    type: String,
-  },
-  title: {
-    type: String,
-    required: true,
-  },
-  image: {
-    type: String,
-  },
-  link: {
-    type: String,
-  },
-});
 
 // Define the userSchema
 const userSchema = new Schema<IUser>(
