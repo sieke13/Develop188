@@ -8,6 +8,7 @@ import { resolvers } from './schemas/resolvers.js';
 import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
 import fs from 'fs';
+import cors from 'cors';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,9 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3001;
 const app = express();
+
+// Enable CORS
+app.use(cors());
 
 // Crear servidor Apollo
 const server = new ApolloServer({
@@ -41,7 +45,7 @@ const startApolloServer = async () => {
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath, { extensions: ['js', 'css', 'html'] }));
 
-      app.get('*', (req, res, ) => {
+      app.get('*', (req, res) => {
         // Verifica si la ruta solicitada es un archivo estático en dist/
         const requestedFile = path.join(distPath, req.path);
 
@@ -61,7 +65,7 @@ const startApolloServer = async () => {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`🌍 Server running on port ${PORT}`);
-    console.log(`🚀 GraphQL ready at ${PORT}/graphql`);
+    console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
   });
 };
 
