@@ -6,3 +6,10 @@ export interface User {
   password: string | null;
   savedBooks: Book[];
 }
+// Initial form state
+export const INITIAL_FORM_STATE: User = {
+  username: '',
+  email: '',
+  password: '',
+  savedBooks: []
+};
