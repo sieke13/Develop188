@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
 
@@ -18,9 +17,12 @@ export default defineConfig({
   },
 
   build: {
-    outDir: 'dist', // Asegura que Vite guarde el build en 'dist/'
-    manifest: true, // Genera un manifest.json para encontrar archivos en producción
+    outDir: 'dist', // Asegura que el build se genere en dist/
+    manifest: true, // Genera el manifest.json para encontrar los archivos con hash
+    rollupOptions: {
+      input: './index.html', // Asegura que Vite procese bien el index.html
+    }
   },
 
-  base: './' // Asegura que los archivos estáticos se sirvan correctamente en producción
+  base: '', // Usa base vacía para evitar problemas de rutas en producción
 })
