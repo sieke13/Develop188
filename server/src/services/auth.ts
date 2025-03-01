@@ -35,15 +35,17 @@ export const authMiddleware = ({ req }: { req: Request }) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    throw new Error('No token, authorization denied');
+    return req; // Allow requests without a token
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || '') as JwtPayload;
-    return decoded; // Return the decoded user object
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || '') as JwtPayload;
+    req.user = decoded; // Attach the decoded user object to the request
   } catch (err) {
-    throw new Error('Token is not valid');
+    console.log('Token is not valid');
   }
+
+  return req;
 };
 
 export const signToken = (username: string, email: string, _id: unknown) => {
