@@ -21,6 +21,9 @@ export default defineConfig({
     manifest: true, // Genera el manifest.json para encontrar los archivos con hash
     rollupOptions: {
       input: './index.html', // Asegura que Vite procese bien el index.html
+      output: {
+        entryFileNames: 'assets/index.js', // 🔹 Fuerza a que siempre se llame index.js
+      }
     }
   },
 
