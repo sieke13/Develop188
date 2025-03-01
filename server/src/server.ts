@@ -36,24 +36,26 @@ const startApolloServer = async () => {
   // Servir archivos estáticos en producción
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../client/dist');
-    const manifestPath = path.join(distPath, 'manifest.json');
 
-    app.use(express.static(distPath));
+    // Asegurar que la carpeta dist existe
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
 
-    app.get('*', (_, res) => {
-      // Verificar si existe el manifest.json para obtener el script correcto
-      if (fs.existsSync(manifestPath)) {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      // Capturar cualquier ruta que no sea un archivo y devolver index.html
+      app.get('*', (req, res) => {
+        const requestedFile = path.join(distPath, req.path);
 
-        if (manifest['index.html'] && manifest['index.html'].file) {
-          res.sendFile(path.join(distPath, manifest['index.html'].file));
-          return;
+        // Si el archivo no existe, devolver index.html
+        if (!fs.existsSync(requestedFile)) {
+          return res.sendFile(path.join(distPath, 'index.html'));
         }
-      }
 
-      // Si no hay manifest, enviar el index.html
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+        // Si el archivo existe, dejar que Express lo maneje
+        res.sendFile(requestedFile);
+      });
+    } else {
+      console.error('❌ ERROR: La carpeta dist/ no existe. Asegúrate de ejecutar "npm run build".');
+    }
   }
 
   // Iniciar servidor después de la conexión a la DB

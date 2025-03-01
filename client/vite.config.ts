@@ -24,5 +24,5 @@ export default defineConfig({
     }
   },
 
-  base: '', // Usa base vacía para evitar problemas de rutas en producción
+  base: './', // 🔹 Asegura que los archivos se sirvan correctamente
 })
