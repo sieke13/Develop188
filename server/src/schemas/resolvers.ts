@@ -4,14 +4,7 @@ import { signToken } from '../services/auth.js';
 import { AuthenticationError } from 'apollo-server-express';
 
 // Define interface for User document
-interface UserDocument {
-  _id: any;
-  username: string;
-  email: string;
-  password: string;
-  savedBooks: any[];
-  isCorrectPassword(password: string): Promise<boolean>;
-}
+
 
 const resolvers = {
   Query: {

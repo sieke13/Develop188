@@ -31,7 +31,7 @@ const SignupForm: React.FC<SignUpFormProps> = ({ handleModalClose }) => {
       Auth.login(data.addUser.token);
       handleModalClose();
     } catch (err) {
-      console.error(err);
+      console.error('Error during signup:', err);
       setShowAlert(true);
     }
 

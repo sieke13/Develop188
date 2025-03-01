@@ -2,6 +2,7 @@ import User from '../models/User.js';
 // Ensure the correct path to the Book model
 import { signToken } from '../services/auth.js';
 import { AuthenticationError } from 'apollo-server-express';
+// Define interface for User document
 const resolvers = {
     Query: {
         me: async (_, __, context) => {
@@ -14,12 +15,15 @@ const resolvers = {
     },
     Mutation: {
         login: async (_, { email, password }) => {
+            console.log("Incoming Data: ", email, password);
             const user = await User.findOne({ email });
             if (!user) {
+                console.log('No user.');
                 throw new AuthenticationError('Incorrect credentials');
             }
             const correctPw = await user.isCorrectPassword(password);
             if (!correctPw) {
+                console.log('Bad password.');
                 throw new AuthenticationError('Incorrect credentials');
             }
             const token = signToken(user.username, user.email, user._id.toString());
@@ -31,23 +35,19 @@ const resolvers = {
             return { token, user };
         },
         saveBook: async (_, { bookData }, context) => {
-            if (!context.user) {
-                throw new AuthenticationError('Not logged in');
+            if (context.user) {
+                const updatedUser = await User.findByIdAndUpdate(context.user._id, { $addToSet: { savedBooks: bookData } }, { new: true }).populate('savedBooks');
+                return updatedUser;
             }
-            if (!bookData || !bookData.bookId) {
-                throw new Error('Invalid book data');
-            }
-            return User.findByIdAndUpdate(context.user._id, { $addToSet: { savedBooks: bookData } }, { new: true, runValidators: true }).populate('savedBooks');
+            throw new AuthenticationError('Not logged in');
         },
         removeBook: async (_, { bookId }, context) => {
-            if (!context.user) {
-                throw new AuthenticationError('Not logged in');
+            if (context.user) {
+                const updatedUser = await User.findByIdAndUpdate(context.user._id, { $pull: { savedBooks: { bookId } } }, { new: true }).populate('savedBooks');
+                return updatedUser;
             }
-            if (!bookId) {
-                throw new Error('Book ID is required');
-            }
-            return User.findByIdAndUpdate(context.user._id, { $pull: { savedBooks: { bookId } } }, { new: true }).populate('savedBooks');
-        },
-    },
+            throw new AuthenticationError('Not logged in');
+        }
+    }
 };
-export default resolvers;
+export { resolvers };
