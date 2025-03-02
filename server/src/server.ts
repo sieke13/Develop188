@@ -1,5 +1,5 @@
 import express from 'express';
-import { ApolloServer } from '@apollo/server';
+import { ApolloServer, BaseContext } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,8 +9,6 @@ import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
 import fs from 'fs';
 import cors from 'cors';
-import { MongoClient } from 'mongodb';
-import type { Request } from 'express';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
@@ -37,33 +35,19 @@ app.use((req, _, next) => {
 });
 
 // Create Apollo Server
-const server = new ApolloServer({
+const server = new ApolloServer<BaseContext>({
   typeDefs,
   resolvers,
+  // context: ({ req }) => authMiddleware({ req }),
   introspection: true, // Enable introspection for GraphQL Playground
 });
 
 const startApolloServer = async () => {
   await server.start();
 
-  // Connect to MongoDB
-  const mongoUri = process.env.MONGODB_URI;
-  if (!mongoUri) {
-    throw new Error('MONGODB_URI is not defined in environment variables');
-  }
-  const client = new MongoClient(mongoUri);
-  await client.connect();
-  const db = client.db(process.env.DB_NAME);
-
-  // Middleware for GraphQL with authentication
+  // Apply Apollo middleware to Express app
   app.use('/graphql', expressMiddleware(server, {
-    context: async ({ req }) => {
-      // Use authMiddleware to get the user from the token
-      const context = authMiddleware({ req });
-      
-      // Return the user and db in the context
-      return { user: context.user, db };
-    },
+    context: async ({ req }) => authMiddleware({ req }),
   }));
 
   // Serve static files in production
