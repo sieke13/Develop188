@@ -1,81 +1,75 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { typeDefs, resolvers } from './schemas/index.js';
-import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import fs from 'fs';
 
-// Load environment variables
-dotenv.config();
-
-// Fix __dirname in ES modules
+// Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create Express app
-const app = express();
 const PORT = process.env.PORT || 3001;
+const app = express();
 
-// Middleware
-app.use(cors());
+// Enable CORS
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+
+// Middleware for parsing request bodies
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Logging middleware to log all incoming requests
+app.use((req: Request, _: Response, next: express.NextFunction) => {
+  console.log(`Received request for ${req.url}`);
+  next();
+});
 
 // Create Apollo Server
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }: { req: express.Request }) => authMiddleware(req),
   introspection: true, // Enable introspection for GraphQL Playground
 });
 
 const startApolloServer = async () => {
-  try {
-    // Connect to the database
-    await connectDB();
+  await server.start();
+
+  // Apply Apollo middleware to Express app
+  // Use type assertion to fix TypeScript error
+  server.applyMiddleware({ 
+    app: app as any,  // Add type assertion here
+    path: '/graphql', // Explicitly set the GraphQL endpoint
+  });
+
+  // Serve static files in production
+  if (process.env.NODE_ENV === 'production') {
+    const distPath = path.join(__dirname, '../../client/dist');
     
-    // Start Apollo Server
-    await server.start();
-    
-    // Apply Apollo middleware to Express app
-    server.applyMiddleware({ app: app as express.Application });
-    
-    // Important: Serve static files first, then add the catch-all route
-    if (process.env.NODE_ENV === 'production') {
-      // Serve static files from the client's dist directory
-      const distPath = path.join(__dirname, '../../client/dist');
-      console.log(`Looking for client dist at: ${distPath}`);
-      
-      if (fs.existsSync(distPath)) {
-        // Serve static files (JS, CSS, images)
-        app.use(express.static(distPath));
+    if (fs.existsSync(distPath)) {
+      // Serve static files from the React build folder
+      app.use(express.static(distPath));
+
+      // Fallback to index.html for client-side routing
+      app.get('*', (req: Request, res: Response) => {
+        // Skip GraphQL requests
+        if (req.path === '/graphql') return;
         
-        // Wild card route - send all other requests to index.html
-        app.get('*', (req, res) => {
-          // Skip GraphQL requests
-          if (req.path === '/graphql') return;
-          
-          console.log(`Serving index.html for path: ${req.path}`);
-          res.sendFile(path.join(distPath, 'index.html'));
-        });
-      } else {
-        console.error('❌ ERROR: dist/ folder missing. Run "npm run build".');
-      }
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    } else {
+      console.error('❌ ERROR: The dist/ folder does not exist. Make sure to run "npm run build".');
     }
-    
-    // Start Express server
-    app.listen(PORT, () => {
-      console.log(`🌍 Server running on port ${PORT}`);
-      console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
-    });
-  } catch (error) {
-    console.error('❌ Server startup error:', error);
-    process.exit(1);
   }
+
+  // Connect to the database and start the server
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`🌍 Server running on port ${PORT}`);
+    console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
+  });
 };
 
 // Start the server
