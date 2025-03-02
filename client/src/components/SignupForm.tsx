@@ -1,92 +1,69 @@
-import { useState } from 'react';
-import { Form, Button, Alert } from 'react-bootstrap';
-import { useMutation } from '@apollo/client';
-import { ADD_USER } from '../utils/mutations';
-import Auth from '../utils/auth';
-import { User, INITIAL_FORM_STATE } from '../models/User';
+// client/src/components/SignupForm.tsx
+import React, { useState } from 'react';
+import { useMutation, gql } from '@apollo/client';
 
-interface SignUpFormProps {
-  handleModalClose: () => void;
-}
+const SIGNUP_MUTATION = gql`
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      id
+      email
+    }
+  }
+`;
 
-const SignupForm: React.FC<SignUpFormProps> = ({ handleModalClose }) => {
-  const [userFormData, setUserFormData] = useState<User>(INITIAL_FORM_STATE);
-  const [showAlert, setShowAlert] = useState(false);
+const SignupForm: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [register, { data, loading, error }] = useMutation(SIGNUP_MUTATION);
 
-  const [addUser] = useMutation(ADD_USER);
-
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setUserFormData({ ...userFormData, [name]: value });
-  };
-
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      const { data } = await addUser({
-        variables: { ...userFormData }
+      const { data } = await register({
+        variables: {
+          input: {
+            email,
+            password,
+          },
+        },
       });
 
-      Auth.login(data.addUser.token);
-      handleModalClose();
+      console.log('User registered:', data.register);
+      alert('Registration successful!');
     } catch (err) {
-      console.error('Error during signup:', err);
-      setShowAlert(true);
+      console.error('Registration error:', err);
+      alert('Failed to register. Please try again.');
     }
-
-    setUserFormData(INITIAL_FORM_STATE);
   };
 
   return (
-    <>
-      {showAlert && (
-        <Alert variant='danger' onClose={() => setShowAlert(false)} dismissible>
-          Something went wrong with your signup!
-        </Alert>
-      )}
-      <Form onSubmit={handleFormSubmit}>
-        <Form.Group>
-          <Form.Label>Username</Form.Label>
-          <Form.Control
-            type='text'
-            placeholder='Your username'
-            name='username'
-            onChange={handleInputChange}
-            value={userFormData.username || ''}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group>
-          <Form.Label>Email</Form.Label>
-          <Form.Control
-            type='email'
-            placeholder='Your email'
-            name='email'
-            onChange={handleInputChange}
-            value={userFormData.email || ''}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group>
-          <Form.Label>Password</Form.Label>
-          <Form.Control
-            type='password'
-            placeholder='Your password'
-            name='password'
-            onChange={handleInputChange}
-            value={userFormData.password || ''}
-            required
-          />
-        </Form.Group>
-
-        <Button type='submit' variant='success'>
-          Sign Up
-        </Button>
-      </Form>
-    </>
+    <form onSubmit={handleSubmit}>
+      <h2>Sign Up</h2>
+      {error && <p style={{ color: 'red' }}>{error.message}</p>}
+      <div>
+        <label>Email:</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label>Password:</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <button type="submit" disabled={loading}>
+        {loading ? 'Registering...' : 'Register'}
+      </button>
+      {data && <p>User registered with email: {data.register.email}</p>}
+    </form>
   );
 };
 

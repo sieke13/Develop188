@@ -1,89 +1,41 @@
-import bcrypt from "bcryptjs";
-import { ObjectId } from "mongodb";
-import { GraphQLError } from "graphql";
-const { AuthenticationError } = require('apollo-server-express');
-const { User } = require('../models');
-const { signToken } = require('../utils/auth');
+import User from '../models/User';
+import bcrypt from 'bcrypt';
 
 export const resolvers = {
-  Query: {
-    me: async (_parent: any, _args: any, context: { user: any }) => {
-      if (context.user) {
-        return User.findById(context.user._id);
-      }
-      throw new AuthenticationError('Not logged in');
-    },
-  },
   Mutation: {
-    signUp: async (_: any, { username, email, password, bio }: { username: string; email: string; password: string; bio?: string }, { db }: { db: any }) => {
-      try {
-        console.log("🔍 Recibiendo solicitud de signup:", { username, email, bio });
+    register: async (_: any, { input }: { input: { email: string; password: string } }) => {
+      const { email, password } = input;
 
-        // Normalizar email (quitar espacios y pasar a minúsculas)
-        email = email.trim().toLowerCase();
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Verificar si el email ya está registrado
-        const existingUser = await db.collection("users").findOne({ email });
-        if (existingUser) {
-          throw new GraphQLError("⚠️ El email ya está registrado.");
-        }
+      // Create a new user
+      const newUser = new User({
+        email,
+        password: hashedPassword,
+      });
 
-        // Generar un username si no se proporciona
-        if (!username) {
-          username = email.split("@")[0]; // Usa la parte antes del @ como username
-        }
+      // Save the user to the database
+      await newUser.save();
 
-        // Hashear la contraseña
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Crear objeto de usuario
-        const newUser = {
-          _id: new ObjectId(),
-          username,
-          email,
-          password: hashedPassword,
-          bio: bio || "", // Si no se proporciona, se guarda como string vacío
-          createdAt: new Date().toISOString(),
-        };
-
-        // Insertar en la base de datos
-        const result = await db.collection("users").insertOne(newUser);
-        if (!result.insertedId) {
-          throw new GraphQLError("❌ No se pudo crear el usuario.");
-        }
-
-        console.log("✅ Usuario creado con éxito:", newUser);
-        return newUser;
-      } catch (error) {
-        if (error instanceof Error) {
-          console.error("❌ Error en signUp:", error.message);
-          throw new GraphQLError((error as Error).message);
-        } else {
-          console.error("❌ Error en signUp:", error);
-          throw new GraphQLError("An unknown error occurred.");
-        }
-      }
+      return newUser;
     },
-    addUser: async (_: any, { username, email, password }: { username: string; email: string; password: string }) => {
-      const user = await User.create({ username, email, password });
-      const token = signToken(user);
-      return { token, user };
-    },
-    login: async (_: any, { username, password }: { username: string; password: string }) => {
-      const user = await User.findOne({ username });
+    login: async (_: any, { input }: { input: { email: string; password: string } }) => {
+      const { email, password } = input;
 
+      // Find the user by email
+      const user = await User.findOne({ email });
       if (!user) {
-        throw new AuthenticationError('Incorrect credentials');
+        throw new Error('User not found');
       }
 
-      const correctPw = await user.isCorrectPassword(password);
-
-      if (!correctPw) {
-        throw new AuthenticationError('Incorrect credentials');
+      // Compare the password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        throw new Error('Invalid password');
       }
 
-      const token = signToken(user);
-      return { token, user };
+      return user;
     },
   },
 };

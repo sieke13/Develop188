@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://geraave2:gerardo123@cluster0.iqwly.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {});
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/googlebooks', {});
         console.log('📦 MongoDB Connected');
     }
     catch (error) {

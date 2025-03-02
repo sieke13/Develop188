@@ -3,7 +3,7 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import typeDefs from './schemas/typeDefs.js';
+import { typeDefs } from './schemas/typeDefs.js';
 import { resolvers } from './schemas/resolvers.js';
 import { authMiddleware } from './services/auth.js';
 import connectDB from './config/connection.js';
@@ -26,6 +26,16 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Middleware for parsing request bodies
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); // Ensure this middleware is set up before Apollo Server
+
+// Logging middleware to log all incoming requests
+app.use((req, _, next) => {
+  console.log(`Received request for ${req.url}`);
+  next();
+});
+
 // Create Apollo Server
 const server = new ApolloServer({
   typeDefs,
@@ -46,7 +56,7 @@ const startApolloServer = async () => {
   const db = client.db(process.env.DB_NAME);
 
   // Middleware for GraphQL with authentication
-  app.use('/graphql', express.json(), expressMiddleware(server, {
+  app.use('/graphql', expressMiddleware(server, {
     context: async ({ req }) => {
       // Use authMiddleware to get the user from the token
       const context = authMiddleware({ req });
@@ -55,10 +65,6 @@ const startApolloServer = async () => {
       return { user: context.user, db };
     },
   }));
-
-  // Middleware for parsing request bodies
-  app.use(express.urlencoded({ extended: true }));
-  app.use(express.json());
 
   // Serve static files in production
   if (process.env.NODE_ENV === 'production') {
