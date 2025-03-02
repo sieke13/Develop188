@@ -1,151 +1,89 @@
-import User, { IUser } from '../models/User.js';
-import { signToken } from '../services/auth.js';
-import { AuthenticationError } from 'apollo-server-express';
+import bcrypt from "bcryptjs";
+import { ObjectId } from "mongodb";
+import { GraphQLError } from "graphql";
+const { AuthenticationError } = require('apollo-server-express');
+const { User } = require('../models');
+const { signToken } = require('../utils/auth');
 
-
-interface AddUserArgs {
-  input: {
-    username: string;
-    email: string;
-    password: string;
-  };
-}
-
-interface LoginUserArgs {
-  email: string;
-  password: string;
-}
-
-interface addBookArgs {
-  bookData: {
-    bookId: string;
-    authors: string[];
-    description: string;
-    title: string;
-    image: string;
-    link: string;
-  };
-}
-
-const resolvers = {
+export const resolvers = {
   Query: {
-    me: async (_: any, __: any, context: any) => {
+    me: async (_parent: any, _args: any, context: { user: any }) => {
       if (context.user) {
-        const user = await User.findById(context.user._id).populate('savedBooks');
-        return user;
+        return User.findById(context.user._id);
       }
       throw new AuthenticationError('Not logged in');
     },
   },
   Mutation: {
-    login: async (_: any, { email, password }: LoginUserArgs) => {
-      console.log("Incoming Data: ", email, password);
-      
-      const user: IUser | null = await User.findOne({ email });
+    signUp: async (_: any, { username, email, password, bio }: { username: string; email: string; password: string; bio?: string }, { db }: { db: any }) => {
+      try {
+        console.log("🔍 Recibiendo solicitud de signup:", { username, email, bio });
+
+        // Normalizar email (quitar espacios y pasar a minúsculas)
+        email = email.trim().toLowerCase();
+
+        // Verificar si el email ya está registrado
+        const existingUser = await db.collection("users").findOne({ email });
+        if (existingUser) {
+          throw new GraphQLError("⚠️ El email ya está registrado.");
+        }
+
+        // Generar un username si no se proporciona
+        if (!username) {
+          username = email.split("@")[0]; // Usa la parte antes del @ como username
+        }
+
+        // Hashear la contraseña
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Crear objeto de usuario
+        const newUser = {
+          _id: new ObjectId(),
+          username,
+          email,
+          password: hashedPassword,
+          bio: bio || "", // Si no se proporciona, se guarda como string vacío
+          createdAt: new Date().toISOString(),
+        };
+
+        // Insertar en la base de datos
+        const result = await db.collection("users").insertOne(newUser);
+        if (!result.insertedId) {
+          throw new GraphQLError("❌ No se pudo crear el usuario.");
+        }
+
+        console.log("✅ Usuario creado con éxito:", newUser);
+        return newUser;
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error("❌ Error en signUp:", error.message);
+          throw new GraphQLError((error as Error).message);
+        } else {
+          console.error("❌ Error en signUp:", error);
+          throw new GraphQLError("An unknown error occurred.");
+        }
+      }
+    },
+    addUser: async (_: any, { username, email, password }: { username: string; email: string; password: string }) => {
+      const user = await User.create({ username, email, password });
+      const token = signToken(user);
+      return { token, user };
+    },
+    login: async (_: any, { username, password }: { username: string; password: string }) => {
+      const user = await User.findOne({ username });
 
       if (!user) {
-        console.log('No user.');
         throw new AuthenticationError('Incorrect credentials');
       }
 
       const correctPw = await user.isCorrectPassword(password);
 
       if (!correctPw) {
-        console.log('Bad password.');
         throw new AuthenticationError('Incorrect credentials');
       }
 
-      const token = signToken(user.username, user.email, user._id.toString());
+      const token = signToken(user);
       return { token, user };
     },
-
-    addUser: async (_: any, { input }: AddUserArgs) => {
-      try {
-        console.log("🔍 Recibiendo solicitud de registro:", input);
-
-        // Verificar si el usuario ya existe
-        const existingUser = await User.findOne({ email: input.email });
-        if (existingUser) {
-          console.log("⚠️ El usuario ya existe.");
-          throw new Error("El usuario ya está registrado.");
-        }
-
-        // Crear el nuevo usuario
-        const user: IUser = await User.create({ ...input });
-        console.log("✅ Usuario creado exitosamente:", user);
-
-        // Generar el token JWT
-        const token = signToken(user.username, user.email, user._id.toString());
-        return { token, user };
-      } catch (error) {
-        console.error("❌ Error en la mutación addUser:", error);
-        throw new Error("Error durante el registro. Por favor, inténtalo de nuevo.");
-      }
-    },
-
-    saveBook: async (_: any, { bookData }: addBookArgs, context: any) => {
-      if (!context.user) {
-        throw new AuthenticationError('Not logged in');
-      }
-
-      try {
-        console.log("🔍 Recibiendo solicitud para guardar libro:", bookData);
-
-        // Verificar si el libro ya está en la base de datos
-        const existingBook = await context.db.collection("books").findOne({ bookId: bookData.bookId });
-        if (existingBook) {
-          console.log("⚠️ El libro ya existe en la base de datos.");
-          throw new Error("Este libro ya está guardado.");
-        }
-
-        // Crear objeto para guardar en la base de datos
-        const newBook = {
-          ...bookData,
-          createdAt: new Date(),
-        };
-
-        // Insertar en la base de datos
-        const result = await context.db.collection("books").insertOne(newBook);
-        if (!result.insertedId) {
-          console.error("❌ Error al guardar el libro en la base de datos.");
-          throw new Error("No se pudo guardar el libro.");
-        }
-
-        console.log("✅ Libro guardado exitosamente:", newBook);
-
-        // Actualizar los libros guardados del usuario
-        const updatedUser = await User.findByIdAndUpdate(
-          context.user._id,
-          { $addToSet: { savedBooks: bookData } },
-          { new: true, runValidators: true }
-        ).populate('savedBooks');
-
-        return updatedUser;
-      } catch (error) {
-        console.error("❌ Error en la mutación saveBook:", error);
-        throw new Error("Error al guardar el libro.");
-      }
-    },
-
-
-    removeBook: async (_: any, { bookId }: { bookId: string }, context: any) => {
-      if (!context.user) {
-        throw new AuthenticationError('Not logged in');
-      }
-
-      if (!bookId) {
-        throw new Error('Book ID is required');
-      }
-
-      const updatedUser = await User.findByIdAndUpdate(
-        context.user._id,
-        { $pull: { savedBooks: { bookId } } },
-        { new: true }
-      ).populate('savedBooks');
-
-      return updatedUser;
-    }
   },
 };
-
-export { resolvers };

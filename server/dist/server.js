@@ -38,14 +38,20 @@ const startApolloServer = async () => {
     await client.connect();
     const db = client.db(process.env.DB_NAME);
     // Middleware for GraphQL with authentication
-    app.use('/graphql', express.json(), expressMiddleware(server, {
+    app.use('/graphql', expressMiddleware(server, {
         context: async ({ req }) => {
-            // Extract the token from the request headers
-            const token = req.headers.authorization || '';
             // Use authMiddleware to get the user from the token
-            const { user } = authMiddleware({ req: { headers: { authorization: token } } });
+            const context = authMiddleware({ req });
             // Return the user and db in the context
-            return { user, db };
+            return { user: context.user, db };
+        },
+    }));
+    app.use('/graphql', expressMiddleware(server, {
+        context: async ({ req }) => {
+            // Use authMiddleware to get the user from the token
+            const context = authMiddleware({ req });
+            // Return the user and db in the context
+            return { user: context.user, db };
         },
     }));
     // Middleware for parsing request bodies
