@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "server/dist/server.js",
   "scripts": {
-    "start": "node server/dist/server.js",
-    "build": "cd client && npm install && npm run build",
+    "start": "node dist/server.js",
+    "build": "tsc",
     "postinstall": "npm run build",
     "develop": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
     "install": "cd server && npm i && cd ../client && npm i",
