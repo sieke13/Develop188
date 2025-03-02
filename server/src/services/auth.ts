@@ -1,70 +1,83 @@
-import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { GraphQLError } from 'graphql';
 import dotenv from 'dotenv';
-
+import type { Request } from 'express';
 dotenv.config();
 
-interface JwtPayload {
-  _id: unknown;
-  username: string;
-  email: string;
-}
+// Middleware to authenticate token
+export const authenticateToken = (req: Request) => {
+  // Allows token to be sent via req.body, req.query, or headers
+  let token = req.body.token || req.query.token || req.headers.authorization;
 
-// Middleware para autenticar tokens en Express
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-    const secretKey = process.env.JWT_SECRET_KEY || '';
-
-    jwt.verify(token, secretKey, (err, user) => {
-      if (err) {
-        return res.sendStatus(403); // Forbidden
-      }
-
-      req.user = user as JwtPayload;
-      return next();
-    });
-  } else {
-    res.sendStatus(401); // Unauthorized
+  // If the token is sent in the authorization header, extract the token from the header
+  if (req.headers.authorization) {
+    token = token.split(' ').pop().trim();
   }
-};
 
-// Middleware para autenticar tokens en GraphQL
-export const authMiddleware = ({ req }: { req: Request }) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
+  // If no token is provided, return the request object as is
   if (!token) {
-    return { user: null }; // Devuelve un contexto sin usuario si no hay token
+    return req;
   }
 
+  // Try to verify the token
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || '') as JwtPayload;
-    return { user: decoded }; // Devuelve el usuario decodificado en el contexto
+    const { data } = jwt.verify(token, process.env.JWT_SECRET_KEY || '', { maxAge: '2hr' }) as { data: any };
+    // If the token is valid, attach the user data to the request object
+    req.user = data;
   } catch (err) {
-    console.log('Token is not valid');
-    return { user: null }; // Devuelve un contexto sin usuario si el token no es válido
+    // If the token is invalid, log an error message
+    console.log('Invalid token');
   }
+
+  // Return the request object
+  return req;
 };
 
-// Función para firmar tokens JWT
-export const signToken = (username: string, email: string, _id: unknown) => {
+// Middleware to verify JWT token and add user data to the request object
+export const authMiddleware = (req: Request) => {
+  // Allows token to be sent via req.body, req.query, or headers
+  let token = req.body.token || req.query.token || req.headers.authorization;
+
+  // If the token is sent in the authorization header, extract the token from the header
+  if (req.headers.authorization) {
+    token = token.split(' ').pop().trim();
+  }
+
+  // If no token is provided, return the request object as is
+  if (!token) {
+    return req;
+  }
+
+  // Try to verify the token
+  try {
+    const { data } = jwt.verify(token, process.env.JWT_SECRET_KEY || '', { maxAge: '2hr' }) as { data: any };
+    // If the token is valid, attach the user data to the request object
+    req.user = data;
+  } catch (err) {
+    // If the token is invalid, log an error message
+    console.log('Invalid token');
+  }
+
+  // Return the request object
+  return req;
+};
+
+// Function to sign a JWT token for the provided user details
+export const signToken = (username: string, email: string, _id: string) => {
+  // Create a payload with the user information
   const payload = { username, email, _id };
-  const secretKey = process.env.JWT_SECRET_KEY || '';
-
-  return jwt.sign(payload, secretKey, { expiresIn: '90h' });
+  const secretKey = process.env.JWT_SECRET_KEY; // Get the secret key from environment variables
+  if (!secretKey) {
+    throw new Error('Missing JWT_SECRET_KEY');
+  }
+  // Sign the token with the payload and secret key, and set it to expire in 2 hours
+  return jwt.sign({ data: payload }, secretKey, { expiresIn: '2hr' });
 };
 
-// Clase personalizada para errores de autenticación en GraphQL
+// Custom AuthenticationError class for GraphQL errors
 export class AuthenticationError extends GraphQLError {
   constructor(message: string) {
-    super(message, {
-      extensions: {
-        code: 'UNAUTHENTICATED',
-      },
-    });
+    super(message, undefined, undefined, undefined, ['UNAUTHENTICATED']);
     Object.defineProperty(this, 'name', { value: 'AuthenticationError' });
   }
 }

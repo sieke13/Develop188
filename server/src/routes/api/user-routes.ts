@@ -1,23 +1,25 @@
+import type { Request, Response } from 'express';
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+
+
 const router = express.Router();
-import {
-  createUser,
-  getSingleUser,
-  saveBook,
-  deleteBook,
-  login,
-} from '../../controllers/user-controller.js';
 
-// import middleware
-import { authenticateToken } from '../../services/auth.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// put authMiddleware anywhere we need to send a token for verification of user
-router.route('/').post(createUser).put(authenticateToken, saveBook);
+// Define routes
+router.post('/createUser');
+router.post('/login');
+router.get('/me');
+router.delete('/books/:bookId');
+router.put('/saveBook');
 
-router.route('/login').post(login);
-
-router.route('/me').get(authenticateToken, getSingleUser);
-
-router.route('/books/:bookId').delete(authenticateToken, deleteBook);
+// Serve React front-end in production
+router.use((_req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../../../client/dist/index.html'));
+});
 
 export default router;

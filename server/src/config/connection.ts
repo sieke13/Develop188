@@ -1,14 +1,19 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
+//mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/googlebooks');
 
-const connectDB = async () => {
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/googlebooks';
+
+const db = async (): Promise<typeof mongoose.connection> => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/googlebooks', {
-    });
-    console.log('📦 MongoDB Connected');
+    await mongoose.connect(MONGODB_URI);
+    console.log('Database connected.');
+    return mongoose.connection;
   } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error);
-    process.exit(1);
+    console.error('Database connection error:', error);
+    throw new Error('Database connection failed.');
   }
 };
 
-export default connectDB;
+export default db;

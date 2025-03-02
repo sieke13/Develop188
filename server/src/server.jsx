@@ -1,13 +1,10 @@
 import express from 'express';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServer } from 'apollo-server-express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { typeDefs } from './schemas/typeDefs.js';
-import { resolvers } from './schemas/resolvers.js';
-import { authMiddleware } from './services/auth.js';
-import connectDB from './config/connection.js';
-import fs from 'fs';
+import { typeDefs, resolvers } from './schemas';
+import { authMiddleware } from './services/auth';
+import connectDB from './config/connection';
 import cors from 'cors';
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
@@ -32,15 +29,13 @@ app.use((req, _, next) => {
 const server = new ApolloServer({
     typeDefs,
     resolvers,
-    // context: ({ req }) => authMiddleware({ req }),
+    context: ({ req }) => authMiddleware({ req }),
     introspection: true, // Enable introspection for GraphQL Playground
 });
 const startApolloServer = async () => {
     await server.start();
     // Apply Apollo middleware to Express app
-    app.use('/graphql', expressMiddleware(server, {
-        context: async ({ req }) => authMiddleware({ req }),
-    }));
+    server.applyMiddleware({ app });
     // Serve static files in production
     if (process.env.NODE_ENV === 'production') {
         const distPath = path.join(__dirname, '../../client/dist');
@@ -64,7 +59,7 @@ const startApolloServer = async () => {
     await connectDB();
     app.listen(PORT, () => {
         console.log(`🌍 Server running on port ${PORT}`);
-        console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
+        console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
     });
 };
 // Start the server

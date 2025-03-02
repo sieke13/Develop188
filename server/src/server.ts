@@ -1,21 +1,18 @@
 import express from 'express';
-import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServer } from 'apollo-server-express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { typeDefs } from './schemas/typeDefs.js';
-import { resolvers } from './schemas/resolvers.js';
-import { authMiddleware } from './services/auth.js';
-import connectDB from './config/connection.js';
-import fs from 'fs';
+import { typeDefs, resolvers } from './schemas';
+import connectDB from './config/connection';
 import cors from 'cors';
+import fs from 'fs';
 
 // Fix __dirname manually
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3001;
-const app = express();
+const app: express.Application = express();
 
 // Enable CORS
 const corsOptions = {
@@ -35,20 +32,20 @@ app.use((req, _, next) => {
 });
 
 // Create Apollo Server
-const serverConfig = {
+const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }: { req: express.Request }) => authMiddleware({ req }),
   introspection: true, // Enable introspection for GraphQL Playground
-};
-
-const server = new ApolloServer(serverConfig);
+});
 
 const startApolloServer = async () => {
   await server.start();
 
   // Apply Apollo middleware to Express app
-  app.use('/graphql', expressMiddleware(server));
+  server.applyMiddleware({ 
+    app: app as any,
+    cors: corsOptions // Apply CORS options to Apollo Server
+  });
 
   // Serve static files in production
   if (process.env.NODE_ENV === 'production') {
@@ -76,9 +73,10 @@ const startApolloServer = async () => {
   // Connect to the database and start the server
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${4000}/graphql`);
+    console.log(`🌍 Server running on port ${PORT}`);
+    console.log(`🚀 GraphQL ready at http://localhost:${PORT}${server.graphqlPath}`);
   });
-}
+};
 
 // Start the server
 startApolloServer();

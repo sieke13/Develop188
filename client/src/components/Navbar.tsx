@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar, Nav, Container, Modal, Tab } from 'react-bootstrap';
 import SignUpForm from './SignupForm';
 import LoginForm from './LoginForm';
+
 import Auth from '../utils/auth';
 
-const AppNavbar: React.FC = () => {
+const AppNavbar = () => {
   // set modal display state
   const [showModal, setShowModal] = useState(false);
 
@@ -17,8 +18,8 @@ const AppNavbar: React.FC = () => {
             Google Books Search
           </Navbar.Brand>
           <Navbar.Toggle aria-controls='navbar' />
-          <Navbar.Collapse id='navbar'>
-            <Nav className='ms-auto'>
+          <Navbar.Collapse id='navbar' className='d-flex flex-row-reverse'>
+            <Nav className='ml-auto d-flex'>
               <Nav.Link as={Link} to='/'>
                 Search For Books
               </Nav.Link>
@@ -60,10 +61,10 @@ const AppNavbar: React.FC = () => {
           <Modal.Body>
             <Tab.Content>
               <Tab.Pane eventKey='login'>
-                <LoginForm />
+                <LoginForm handleModalClose={() => setShowModal(false)} />
               </Tab.Pane>
               <Tab.Pane eventKey='signup'>
-                <SignUpForm />
+                <SignUpForm handleModalClose={() => setShowModal(false)} />
               </Tab.Pane>
             </Tab.Content>
           </Modal.Body>

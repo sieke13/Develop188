@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
-import { useMutation } from '@apollo/client';
 import { ADD_USER } from '../utils/mutations';
 import Auth from '../utils/auth';
-import { INITIAL_FORM_STATE } from '../models/User';
+import { INITIAL_FORM_STATE, User } from '../models/User';
+import { useMutation } from '@apollo/client';
 
-const SignupForm: React.FC = () => {
-  const [userFormData, setUserFormData] = useState(INITIAL_FORM_STATE);
-  const [showAlert, setShowAlert] = useState(false);
+const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClose }) => {
+  // set initial form state
+  const [userFormData, setUserFormData] = useState<User>(INITIAL_FORM_STATE);
   const [addUser] = useMutation(ADD_USER);
+  // set state for form validation
+  const [validated] = useState(false);
+  // set state for alert
+  const [showAlert, setShowAlert] = useState(false);
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setUserFormData({ ...userFormData, [name]: value });
   };
 
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     // check if form has everything (as per react-bootstrap docs)
@@ -31,6 +36,7 @@ const SignupForm: React.FC = () => {
       });
 
       Auth.login(data.addUser.token);
+      handleModalClose();
     } catch (err) {
       console.error('Error during signup:', err);
       setShowAlert(true);
@@ -93,9 +99,7 @@ const SignupForm: React.FC = () => {
         </Form.Group>
 
         <Button
-          disabled={
-            !(userFormData.username && userFormData.email && userFormData.password)
-          }
+          disabled={!(userFormData.username && userFormData.email && userFormData.password)}
           type='submit'
           variant='success'
         >

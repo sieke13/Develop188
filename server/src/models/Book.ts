@@ -1,13 +1,12 @@
-import { Schema, type Document, model } from 'mongoose';
+import { Schema, type Document } from 'mongoose';
 
-// Define the BookDocument interface
 export interface BookDocument extends Document {
   bookId: string;
   title: string;
   authors: string[];
   description: string;
-  image?: string;
-  link?: string;
+  image: string;
+  link: string;
 }
 
 // This is a subdocument schema, it won't become its own model but we'll use it as the schema for the User's `savedBooks` array in User.js
@@ -19,6 +18,7 @@ const bookSchema = new Schema<BookDocument>({
   ],
   description: {
     type: String,
+    required: true,
   },
   // saved book id from GoogleBooks
   bookId: {
@@ -37,6 +37,4 @@ const bookSchema = new Schema<BookDocument>({
   },
 });
 
-// Create and export the Book model
-const Book = model<BookDocument>('Book', bookSchema);
-export { Book, bookSchema };
+export default bookSchema;
