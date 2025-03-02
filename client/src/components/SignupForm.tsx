@@ -11,7 +11,7 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
   const [userFormData, setUserFormData] = useState<User>(INITIAL_FORM_STATE);
   const [addUser] = useMutation(ADD_USER);
   // set state for form validation
-  const [validated] = useState(false);
+  const [] = useState(false);
   // set state for alert
   const [showAlert, setShowAlert] = useState(false);
 
