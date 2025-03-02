@@ -1,5 +1,6 @@
 import User from '../models/User';
 import bcrypt from 'bcrypt';
+import { signToken } from '../services/auth';
 
 export const resolvers = {
   Mutation: {
@@ -20,22 +21,28 @@ export const resolvers = {
 
       return newUser;
     },
-    login: async (_: any, { input }: { input: { email: string; password: string } }) => {
-      const { email, password } = input;
-
-      // Find the user by email
+    loginUser: async (parent, { email, password }) => {
       const user = await User.findOne({ email });
+
       if (!user) {
-        throw new Error('User not found');
+        throw new Error('No user found with this email address');
       }
 
-      // Compare the password
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        throw new Error('Invalid password');
+      const correctPw = await user.isCorrectPassword(password);
+
+      if (!correctPw) {
+        throw new Error('Incorrect credentials');
       }
 
-      return user;
+      const token = signToken(user);
+      return { token, user };
+    },
+    addUser: async (parent, args) => {
+      const user = await User.create(args);
+      const token = signToken(user);
+      return { token, user };
     },
   },
 };
+
+export default resolvers;

@@ -5,7 +5,7 @@ import { ADD_USER } from '../utils/mutations';
 import Auth from '../utils/auth';
 import { INITIAL_FORM_STATE } from '../models/User';
 
-const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClose }) => {
+const SignupForm: React.FC = () => {
   const [userFormData, setUserFormData] = useState(INITIAL_FORM_STATE);
   const [showAlert, setShowAlert] = useState(false);
   const [addUser] = useMutation(ADD_USER);
@@ -17,16 +17,25 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    // check if form has everything (as per react-bootstrap docs)
+    const form = event.currentTarget;
+    if (form.checkValidity() === false) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     try {
       const { data } = await addUser({
-        variables: { ...userFormData }
+        variables: { ...userFormData },
       });
+
       Auth.login(data.addUser.token);
-      handleModalClose();
     } catch (err) {
       console.error('Error during signup:', err);
       setShowAlert(true);
     }
+
     setUserFormData(INITIAL_FORM_STATE);
   };
 
@@ -37,7 +46,7 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
           Something went wrong with your signup!
         </Alert>
       )}
-      <Form onSubmit={handleFormSubmit}>
+      <Form noValidate validated={false} onSubmit={handleFormSubmit}>
         <Form.Group>
           <Form.Label>Username</Form.Label>
           <Form.Control
@@ -48,6 +57,9 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
             value={userFormData.username || ''}
             required
           />
+          <Form.Control.Feedback type='invalid'>
+            Username is required!
+          </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group>
@@ -60,6 +72,9 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
             value={userFormData.email || ''}
             required
           />
+          <Form.Control.Feedback type='invalid'>
+            Email is required!
+          </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group>
@@ -72,9 +87,18 @@ const SignupForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClo
             value={userFormData.password || ''}
             required
           />
+          <Form.Control.Feedback type='invalid'>
+            Password is required!
+          </Form.Control.Feedback>
         </Form.Group>
 
-        <Button type='submit' variant='success'>
+        <Button
+          disabled={
+            !(userFormData.username && userFormData.email && userFormData.password)
+          }
+          type='submit'
+          variant='success'
+        >
           Sign Up
         </Button>
       </Form>

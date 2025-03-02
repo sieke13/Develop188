@@ -2,10 +2,6 @@ import jwt from 'jsonwebtoken';
 import { GraphQLError } from 'graphql';
 import dotenv from 'dotenv';
 dotenv.config();
-
-const secret = 'your_secret_key';
-const expiration = '200h';
-
 // Middleware para autenticar tokens en Express
 export const authenticateToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -24,37 +20,27 @@ export const authenticateToken = (req, res, next) => {
         res.sendStatus(401); // Unauthorized
     }
 };
-
 // Middleware para autenticar tokens en GraphQL
 export const authMiddleware = ({ req }) => {
-    // Extract the token from the request headers
-    let token = req.headers['authorization'];
-
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     if (!token) {
-        return req;
+        return { user: null }; // Devuelve un contexto sin usuario si no hay token
     }
-
-    // Remove "Bearer " from the token string if it exists
-    if (token.startsWith('Bearer ')) {
-        token = token.slice(7, token.length).trimLeft();
-    }
-
     try {
-        const { data } = jwt.verify(token, secret, { maxAge: expiration });
-        req.user = data;
-    } catch {
-        console.log('Invalid token');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY || '');
+        return { user: decoded }; // Devuelve el usuario decodificado en el contexto
     }
-
-    return req;
+    catch (err) {
+        console.log('Token is not valid');
+        return { user: null }; // Devuelve un contexto sin usuario si el token no es válido
+    }
 };
-
 // Función para firmar tokens JWT
-export const signToken = ({ username, email, _id }) => {
+export const signToken = (username, email, _id) => {
     const payload = { username, email, _id };
-    return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
+    const secretKey = process.env.JWT_SECRET_KEY || '';
+    return jwt.sign(payload, secretKey, { expiresIn: '90h' });
 };
-
 // Clase personalizada para errores de autenticación en GraphQL
 export class AuthenticationError extends GraphQLError {
     constructor(message) {

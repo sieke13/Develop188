@@ -1,5 +1,5 @@
 import express from 'express';
-import { ApolloServer, BaseContext } from '@apollo/server';
+import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -35,20 +35,20 @@ app.use((req, _, next) => {
 });
 
 // Create Apollo Server
-const server = new ApolloServer<BaseContext>({
+const serverConfig = {
   typeDefs,
   resolvers,
-  // context: ({ req }) => authMiddleware({ req }),
+  context: ({ req }: { req: express.Request }) => authMiddleware({ req }),
   introspection: true, // Enable introspection for GraphQL Playground
-});
+};
+
+const server = new ApolloServer(serverConfig);
 
 const startApolloServer = async () => {
   await server.start();
 
   // Apply Apollo middleware to Express app
-  app.use('/graphql', expressMiddleware(server, {
-    context: async ({ req }) => authMiddleware({ req }),
-  }));
+  app.use('/graphql', expressMiddleware(server));
 
   // Serve static files in production
   if (process.env.NODE_ENV === 'production') {
@@ -76,10 +76,9 @@ const startApolloServer = async () => {
   // Connect to the database and start the server
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`🌍 Server running on port ${PORT}`);
-    console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
+    console.log(`Server running at http://localhost:${4000}/graphql`);
   });
-};
+}
 
 // Start the server
 startApolloServer();

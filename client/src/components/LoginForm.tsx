@@ -1,23 +1,13 @@
 import React, { useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
-import { useMutation, gql } from '@apollo/client';
-import Auth from '../utils/auth';
+import { useMutation } from '@apollo/client';
+import { LOGIN_USER } from '../utils/mutations';
+import Auth from '../utils.auth';
 
-const LOGIN_MUTATION = gql`
-  mutation Login($input: LoginInput!) {
-    login(input: $input) {
-      id
-      email
-      token
-    }
-  }
-`;
-
-const LoginForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClose }) => {
+const LoginForm: React.FC = () => {
   const [userFormData, setUserFormData] = useState({ email: '', password: '' });
-  const [validated, setValidated] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const [login, { loading, error }] = useMutation(LOGIN_MUTATION);
+  const [login] = useMutation(LOGIN_USER);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -34,74 +24,65 @@ const LoginForm: React.FC<{ handleModalClose: () => void }> = ({ handleModalClos
       event.stopPropagation();
     }
 
-    setValidated(true);
-
     try {
       const { data } = await login({
-        variables: { input: userFormData },
+        variables: { ...userFormData },
       });
 
       Auth.login(data.login.token);
-      handleModalClose();
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Error during login:', err);
       setShowAlert(true);
     }
 
-    setUserFormData({
-      email: '',
-      password: '',
-    });
+    setUserFormData({ email: '', password: '' });
   };
 
   return (
     <>
-      <Form noValidate validated={validated} onSubmit={handleFormSubmit}>
-        <Alert
-          dismissible
-          onClose={() => setShowAlert(false)}
-          show={showAlert}
-          variant="danger"
-        >
-          Something went wrong with your login credentials!
+      {showAlert && (
+        <Alert variant='danger' onClose={() => setShowAlert(false)} dismissible>
+          Something went wrong with your login!
         </Alert>
+      )}
+      <Form noValidate validated={false} onSubmit={handleFormSubmit}>
         <Form.Group>
-          <Form.Label htmlFor="email">Email</Form.Label>
+          <Form.Label>Email</Form.Label>
           <Form.Control
-            type="email"
-            placeholder="Your email"
-            name="email"
+            type='email'
+            placeholder='Your email'
+            name='email'
             onChange={handleInputChange}
-            value={userFormData.email}
+            value={userFormData.email || ''}
             required
           />
-          <Form.Control.Feedback type="invalid">
+          <Form.Control.Feedback type='invalid'>
             Email is required!
           </Form.Control.Feedback>
         </Form.Group>
 
         <Form.Group>
-          <Form.Label htmlFor="password">Password</Form.Label>
+          <Form.Label>Password</Form.Label>
           <Form.Control
-            type="password"
-            placeholder="Your password"
-            name="password"
+            type='password'
+            placeholder='Your password'
+            name='password'
             onChange={handleInputChange}
-            value={userFormData.password}
+            value={userFormData.password || ''}
             required
           />
-          <Form.Control.Feedback type="invalid">
+          <Form.Control.Feedback type='invalid'>
             Password is required!
           </Form.Control.Feedback>
         </Form.Group>
+
         <Button
           disabled={!(userFormData.email && userFormData.password)}
-          type="submit"
-          variant="success"
+          type='submit'
+          variant='success'
         >
-          {loading ? 'Logging in...' : 'Login'}
+          Login
         </Button>
-        {error && <p style={{ color: 'red' }}>{error.message}</p>}
       </Form>
     </>
   );
